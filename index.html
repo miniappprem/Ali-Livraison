@@ -862,7 +862,7 @@ function processOrder() {
     txt += `\n*TOTAL NET : ${orderSum}€*`;
     txt = encodeURIComponent(txt);
     
-    window.open(`${CONFIG.TELEGRAM_LIEN_COMMANDE}?text=${txt}`, '_blank');
+    tg.openTelegramLink(`${CONFIG.TELEGRAM_LIEN_COMMANDE}?text=${txt}`);
 }
 
 // --- PIN PAD ---
