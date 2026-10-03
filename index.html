@@ -286,7 +286,15 @@ button{cursor:pointer;border:0}
 <section id="cart" class="page">
     <div class="panel glass" style="padding:15px">
         <h2 style="margin:5px 0 20px; text-align:center; font-size:22px; letter-spacing:0.5px; color:var(--cyan)">Panier</h2>
+        
         <div id="cartList" class="cartList"></div>
+        
+        <!-- NOUVEAU: Champ d'adresse dynamique -->
+        <div id="addressBox" style="display:none; width:100%; margin-top:20px; text-align:left;">
+            <label style="font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; display:block;">📍 Adresse de livraison</label>
+            <textarea id="clientAddress" class="admin-input" placeholder="Ex: 12 Rue de Paris, Bâtiment A, Code postal, Ville..." style="min-height:70px; resize:vertical; background:rgba(0,0,0,0.3); border-color:var(--violet);"></textarea>
+        </div>
+
         <div id="total"></div>
         <p id="cartHint" class="muted" style="text-align:center; font-size:12px; margin-top:15px; display:none;">
             Utilise les boutons ci-dessus ou le bouton or en bas pour finaliser.
@@ -802,17 +810,24 @@ function renderCart() {
     const list = document.getElementById("cartList");
     const totDiv = document.getElementById("total");
     const hint = document.getElementById("cartHint");
+    const addressBox = document.getElementById("addressBox");
     
     if(!cart.length) {
         list.innerHTML = `<p class="muted" style="text-align:center; padding:30px 0">Ton panier est vide.</p>`;
-        totDiv.innerHTML = ""; hint.style.display = "none";
+        totDiv.innerHTML = ""; 
+        hint.style.display = "none";
+        addressBox.style.display = "none";
         if(document.getElementById("cart").classList.contains("on")) tg.MainButton.hide();
         return;
     }
     
     orderSum = 0;
+    let hasDelivery = false;
+
     list.innerHTML = cart.map((item, i) => {
         orderSum += item.p * item.qty;
+        if(item.delivery === 'Livraison') hasDelivery = true;
+
         let mediaHtml = isVideo(item.m) ? `<video src="${item.m}" autoplay loop muted playsinline webkit-playsinline disablePictureInPicture></video>` : `<img src="${item.m}" onerror="this.src='${FALLBACK_IMG}'">`;
         return `
         <div class="row glass">
@@ -830,6 +845,13 @@ function renderCart() {
         </div>`;
     }).join("");
     
+    // Afficher ou masquer le champ d'adresse
+    if(hasDelivery) {
+        addressBox.style.display = "block";
+    } else {
+        addressBox.style.display = "none";
+    }
+
     totDiv.innerHTML = `
         <div class="total"><span>Total Net</span><b>${orderSum}€</b></div>
         <button class="cta cta-tg" onclick="processOrder()">
@@ -847,11 +869,29 @@ function renderCart() {
 
 function processOrder() {
     if(!cart.length) return;
+    
+    let hasDelivery = cart.some(i => i.delivery === 'Livraison');
+    let clientAddress = document.getElementById("clientAddress").value.trim();
+
+    // Vérification : si livraison demandée mais adresse vide
+    if(hasDelivery && clientAddress === "") {
+        vibe('heavy');
+        showToast("⚠️ Veuillez saisir votre adresse de livraison !");
+        document.getElementById("clientAddress").focus();
+        return;
+    }
+
     let clientName = document.getElementById("tgName").innerText;
     let clientId = document.getElementById("tgId").innerText;
     
     let txt = "• NOUVELLE COMMANDE ALI LIVRAISON •\n\n";
     txt += `👤 Client : ${clientName} (${clientId})\n`;
+    
+    // Ajout de l'adresse au message si applicable
+    if(hasDelivery) {
+        txt += `📍 Adresse : ${clientAddress}\n`;
+    }
+    
     txt += `━━━━━━━━━━━━━━━━━━━━\n\n`;
     
     cart.forEach(item => {
